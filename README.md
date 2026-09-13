@@ -1,62 +1,125 @@
 # 智慧政务大数据分析平台
 
-基于 **NYC 311** 公开热线数据的政务场景作品集：数据接入清洗 → 多维聚合 → 趋势预测 / 质量监控 → 可视化看板。  
-适合作为**数据分析**方向的项目。
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js&logoColor=white)](https://vuejs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.x-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 
-| 项 | 内容 |
+基于 **NYC 311** 公开热线数据的政务场景作品集。  
+覆盖完整分析链路：**数据接入 → 清洗治理 → 多维聚合 → 趋势预测 / 异常检测 → 可视化看板 → 工单闭环**。
+
+适合作为 **数据分析 / 数据开发** 方向的面试与作品集项目。
+
+| | |
 | --- | --- |
-| 数据规模 | 诉求 **50,000** + 办件 **50,000**（约 50 天窗口） |
-| 核心分析 | Holt-Winters 预测 · 3-sigma 异常检测 · Data Quality |
-| 演示指标 | MAPE ≈ **16.5%** · RMSE ≈ **329** · 完整度 **99.36%** |
-| 技术栈 | Python · Pandas · FastAPI · Vue3 · ECharts · SQLite · Docker |
-| 一键部署 | `docker compose up -d --build` |
+| **数据规模** | 诉求 50,000 + 办件 50,000 · 约 50 天窗口 · 五大行政区 |
+| **分析能力** | Holt-Winters 预测 · 3-sigma 异常检测 · Data Quality |
+| **演示指标** | MAPE ≈ 16.5% · RMSE ≈ 329 · 完整度 99.36% |
+| **工程形态** | FastAPI + Vue3 + SQLite · Docker 一键部署 · 50+ pytest |
+
+<p align="center">
+  <img src="docs/screenshots/02-home.png" alt="政府首页看板" width="92%" />
+  <br/>
+  <sub>政府端首页：KPI · 趋势 · 区域分布 · 热门事项 · 类型结构</sub>
+</p>
 
 ---
 
 ## 目录
 
-1. [功能预览](#1-功能预览)
-2. [数据一览](#2-数据一览)
-3. [系统架构](#3-系统架构)
-4. [核心能力](#4-核心能力)
-5. [快速启动](#5-快速启动)
-6. [Docker 部署](#6-docker-部署)
-7. [权限与测试](#7-权限与测试)
-8. [项目结构](#8-项目结构)
-9. [相关文档](#9-相关文档)
+- [为什么做这个项目](#为什么做这个项目)
+- [功能预览](#功能预览)
+- [核心能力](#核心能力)
+- [数据一览](#数据一览)
+- [系统架构](#系统架构)
+- [快速开始](#快速开始)
+- [Docker 部署](#docker-部署)
+- [权限演示](#权限演示)
+- [测试](#测试)
+- [项目结构](#项目结构)
+- [相关文档](#相关文档)
+- [License](#license)
 
 ---
 
-## 1. 功能预览
+## 为什么做这个项目
+
+政务热线类数据常见痛点：
+
+1. **口径不统一**：诉求、办件、区域、状态散落在多表，难以一次看清热点。
+2. **只有事后统计**：缺少短期预测与异常识别，难以及时调度资源。
+3. **质量问题被忽略**：缺失区域、重复诉求会直接污染 KPI。
+
+本项目用 **真实公开数据（NYC 311）** 模拟政务热线闭环，把「清洗 → 指标 → 预测 → 看板」做成可演示、可复现的端到端样例。
+
+---
+
+## 功能预览
+
+### 登录与角色分流
+
+管理员进入政府看板，普通用户进入群众端。
 
 | 登录页 | 政府首页看板 |
 | :---: | :---: |
-| ![登录](docs/screenshots/01-login.png) | ![首页看板](docs/screenshots/02-home.png) |
-| 账号登录 / 角色分流 | KPI · 趋势 · 区域 · 热门事项 |
+| <img src="docs/screenshots/01-login.png" width="100%" alt="登录" /> | <img src="docs/screenshots/02-home.png" width="100%" alt="首页" /> |
+| `admin / admin123` · `user / user123` | KPI 卡片 · 趋势 · 地图 · 热门事项 |
 
-| 诉求工单处置 | 趋势预测 |
+### 数据总览与工单处置
+
+| 数据总览 | 诉求工单处置 |
 | :---: | :---: |
-| ![工单](docs/screenshots/03-cases.png) | ![趋势预测](docs/screenshots/04-trend.png) |
-| 筛选 · 列表 · 处置流转 | Holt-Winters · MAPE / RMSE |
+| <img src="docs/screenshots/05-overview.png" width="100%" alt="数据总览" /> | <img src="docs/screenshots/03-cases.png" width="100%" alt="工单" /> |
+| 各区办件量 · 事项类型 TOP | 筛选查询 · 状态流转 · 超时标红 |
+
+### 趋势预测与数据质量
+
+| 趋势 / Holt-Winters 预测 | 数据质量监控 |
+| :---: | :---: |
+| <img src="docs/screenshots/04-trend.png" width="100%" alt="趋势预测" /> | <img src="docs/screenshots/06-quality.png" width="100%" alt="数据质量" /> |
+| 回看 28 天 · 预测 7 天 · MAPE / RMSE | 完整度 · 缺失 / 重复 / 时间逻辑 · 3-sigma |
+
+### 统计报表与督办考核
+
+| 统计报表 | 督办考核 |
+| :---: | :---: |
+| <img src="docs/screenshots/07-reports.png" width="100%" alt="报表" /> | <img src="docs/screenshots/08-supervision.png" width="100%" alt="督办" /> |
+| 分类占比 · 部门效能 · 近 30 天趋势 | 在办 / 超时 · 部门得分 · 超时清单 |
 
 ---
 
-## 2. 数据一览
+## 核心能力
 
-数据来源：[NYC 311 Open Data](https://www.kaggle.com/datasets/sherinclaudia/nyc311-2010)，经 `import_nyc311.py` 映射为诉求 / 办件 / 部门 / 区域表，落盘 **CSV + SQLite**。
+| 能力 | 做法 | 你能在界面看到什么 |
+| --- | --- | --- |
+| **ETL / 字段映射** | NYC 311 → 诉求 / 办件 / 部门 / 区域 | 中文区域与事项类型、可替换数据源 |
+| **多维聚合** | 区域 × 类型 × 状态 · SQL / Pandas | 总览表、热门 TOP、分类饼图 |
+| **时间序列预测** | Holt-Winters 加法季节，周期 7 天 | 预测曲线 + MAPE / RMSE |
+| **异常检测** | 拟合残差 3-sigma | 异常日列表 / 质量页异常计数 |
+| **数据质量** | 缺失区域 · 重复诉求 · 时间逻辑 | 完整度 99.36% · 问题清单 |
+| **工单闭环** | 待受理 → 分派 → 办理 → 办结 | 工单页操作与超时督办 |
+| **鉴权 RBAC** | PBKDF2 + HMAC Token | 未登录 401 · 越权 403 |
 
-### 2.1 规模与质量
+---
+
+## 数据一览
+
+数据来源：[NYC 311 Open Data](https://www.kaggle.com/datasets/sherinclaudia/nyc311-2010)  
+接入脚本：`import_nyc311.py` → 落盘 **CSV + SQLite**（`data/` 默认不入库，需本地生成或导入）。
+
+### 规模与质量
 
 | 指标 | 数值 | 说明 |
 | --- | --- | --- |
-| 诉求 / 办件 | 各 50,000 | 可复现抽样演示集 |
+| 诉求 / 办件 | 各 50,000 | NYC 抽样演示集 |
 | 时间跨度 | 约 50 天 | 2026-07-19 → 2026-09-07 |
 | 办结率 | ≈ 99.45% | 已办结 49,725 / 办理中 275 |
-| 数据完整度 | 99.36% | Data Quality 模块输出 |
-| Unspecified 区域 | 320 条 | 待区域字典补齐 |
-| 重复诉求 | 9 条 | 内容 + 分类 + 区域 + 时间全同 |
+| 数据完整度 | **99.36%** | Data Quality 输出 |
+| Unspecified 区域 | **320** | 待区域字典补齐 |
+| 重复诉求 | **9** | 内容 + 分类 + 区域 + 时间全同 |
 
-### 2.2 区域分布（办件量）
+### 区域分布
 
 | 行政区 | 办件量 | 占比约 |
 | --- | ---: | ---: |
@@ -67,7 +130,7 @@
 | 史泰登岛区 | 2,317 | 4.6% |
 | Unspecified | 320 | 0.6% |
 
-### 2.3 头部诉求类型 Top 5
+### 头部诉求类型 Top 5
 
 | 类型 | 数量 |
 | --- | ---: |
@@ -77,28 +140,28 @@
 | 街道噪音 | 4,291 |
 | 废弃车辆 | 3,000 |
 
-### 2.4 预测与业务 KPI
+### 预测与业务 KPI
 
 | 项 | 数值 |
 | --- | --- |
-| 模型 | Holt-Winters 加法季节，周期 7 天 |
-| 窗口 | 回看 28 天，预测未来 7 天 |
-| MAPE | ≈ 16.5% |
-| RMSE | ≈ 329 |
+| 模型 | Holt-Winters，周期 7 天 |
+| 默认窗口 | 回看 **28** 天，预测未来 **7** 天 |
+| MAPE | ≈ **16.5%** |
+| RMSE | ≈ **329** |
 | 近 7 日均办时长 | ≈ 4.1 小时 |
 | 满意度 | ≈ 4.0 / 5 分 |
 
-> 以上指标来自 NYC 311 约 5 万条抽样演示集。仓库默认不上传 `data/`，本地需运行接入脚本或 `generate_data.py`；纯模拟数据下区域分布 / MAPE 等会不同。更换 `days_back` 时 MAPE / RMSE 也会变化。
+> 以上指标来自 NYC 311 约 5 万条抽样。仅跑 `generate_data.py` 时区域分布 / MAPE 会不同；更换 `days_back` 时误差也会变化。
 
 ---
 
-## 3. 系统架构
+## 系统架构
 
 ```mermaid
 flowchart LR
   A[NYC 311 CSV] --> B[import / generate]
   B --> C[(CSV + SQLite)]
-  C --> D[shared<br/>metrics / forecast / quality]
+  C --> D[shared<br/>metrics / forecast / quality / workflow]
   D --> E[FastAPI]
   E --> F[Vue3 管理端]
   E --> G[Streamlit 大屏 可选]
@@ -108,34 +171,21 @@ flowchart LR
 | 模块 | 目录 | 技术栈 | 职责 |
 | --- | --- | --- | --- |
 | 共享分析层 | [`shared/`](shared) | Pandas · NumPy | KPI、预测、质量、工单状态机 |
-| 后端 API | [`backend/`](backend) | FastAPI · SQLite | 鉴权 RBAC、聚合接口、工单 |
-| 管理前端 | [`frontend/`](frontend) | Vue3 · Element Plus · ECharts | 政府看板 / 工单 / 趋势 |
+| 后端 API | [`backend/`](backend) | FastAPI · SQLite | 鉴权、聚合接口、工单 |
+| 管理前端 | [`frontend/`](frontend) | Vue3 · Element Plus · ECharts | 看板 / 工单 / 趋势 / 质量 |
 | 分析大屏 | [`dashboard/`](dashboard) | Streamlit | 只读可视化（可选） |
-| 测试 | [`tests/`](tests) | pytest | 单测与 API 冒烟 |
+| 测试 | [`tests/`](tests) | pytest | 单元测试 + API 冒烟 |
 
 ---
 
-## 4. 核心能力
+## 快速开始
 
-| 能力 | 做法 | 产出 |
-| --- | --- | --- |
-| ETL / 映射 | NYC 字段 → 诉求 / 办件 / 部门 / 区域 | 可替换开放数据源 |
-| 多维聚合 | 区域 × 类型 × 状态 · SQL / Pandas | 热点区与头部类型结论 |
-| 时间序列预测 | Holt-Winters（纯 NumPy） | 未来 7 日办件量 + MAPE / RMSE |
-| 异常检测 | 拟合残差 3-sigma | 异常日列表（避免把周末高峰误判） |
-| 数据质量 | 缺失区域 / 重复 / 时间逻辑 | 完整度与问题明细 |
-| 权限闭环 | PBKDF2 + HMAC Token | 未登录 401 · 越权 403 |
+> Windows 上 Hyper-V 常保留部分端口。本项目默认：**前端 5500**、**后端 8001**。
 
----
-
-## 5. 快速启动
-
-> Windows 上 Hyper-V 常保留部分端口段，本项目默认：**前端 5500**、**后端 8001**。
-
-### 5.1 环境
+### 1. 环境
 
 ```powershell
-# 进入本仓库根目录后执行
+# 进入本仓库根目录
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
@@ -144,7 +194,7 @@ npm install
 cd ..
 ```
 
-### 5.2 数据
+### 2. 数据
 
 | 方式 | 命令 | 说明 |
 | --- | --- | --- |
@@ -152,7 +202,7 @@ cd ..
 | 模拟兜底 | `python generate_data.py` | 种子 42，可复现 |
 | 真实 311 | `python import_nyc311.py "路径\311.csv" --sample 50000` | 推荐演示 |
 
-### 5.3 启动服务
+### 3. 启动
 
 ```powershell
 # 终端 1 — 后端
@@ -169,14 +219,14 @@ npm run dev
 | 后端 API | http://127.0.0.1:8001 |
 | Swagger | http://127.0.0.1:8001/docs |
 
-### 5.4 演示账号
+### 4. 演示账号
 
 | 角色 | 账号 | 密码 | 进入后 |
 | --- | --- | --- | --- |
 | 管理员 | `admin` | `admin123` | 政府看板 `/home` |
 | 普通用户 | `user` | `user123` | 群众端 `/citizen` |
 
-### 5.5 数据大屏（可选）
+### 5. 数据大屏（可选）
 
 ```powershell
 cd dashboard
@@ -185,7 +235,7 @@ streamlit run app.py
 
 ---
 
-## 6. Docker 部署
+## Docker 部署
 
 需安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
 
@@ -201,7 +251,7 @@ docker compose up -d --build
 
 | 说明 | 细节 |
 | --- | --- |
-| 无本地数据 | 容器自动 `generate_data.py` |
+| 无本地数据 | 容器自动执行 `generate_data.py` |
 | 已有 CSV / DB | 通过 `./data` 卷挂载复用 |
 | 反代 | Nginx 将 `/api` 转到 `backend:8000` |
 
@@ -215,9 +265,7 @@ docker compose down
 
 ---
 
-## 7. 权限与测试
-
-### 7.1 权限演示
+## 权限演示
 
 | 步骤 | 操作 | 预期 |
 | --- | --- | --- |
@@ -225,7 +273,9 @@ docker compose down
 | 2 | `user` 登录后访问 `/api/users` | **403** |
 | 3 | `admin` 访问用户管理 / 工单 / 日志 | **200** |
 
-### 7.2 测试
+---
+
+## 测试
 
 ```powershell
 pip install -r requirements-dev.txt
@@ -236,35 +286,42 @@ pytest -v
 | --- | --- |
 | 单元测试 | `shared`：指标、预测、质量等 |
 | API 冒烟 | 登录 · 401 · 403 · 看板 · 诉求 |
-| 本地回归 | `pytest -v`（约 50+ 用例） |
+| 规模 | 约 **50+** 用例 |
 
 ---
 
-## 8. 项目结构
+## 项目结构
 
 ```
-智慧政务大数据平台/
-├── backend/               # FastAPI
-├── frontend/              # Vue3 管理端（5500）
-├── dashboard/             # Streamlit 大屏（可选）
-├── shared/                # metrics / auth / forecast / workflow
-├── data/                  # CSV + SQLite（默认 gitignore）
-├── tests/                 # 单元测试 + API 冒烟
+智慧政务大数据分析平台/
+├── backend/                 # FastAPI
+├── frontend/                # Vue3 管理端（5500）
+├── dashboard/               # Streamlit 大屏（可选）
+├── shared/                  # metrics / auth / forecast / workflow
+├── data/                    # CSV + SQLite（gitignore）
+├── tests/                   # 单元测试 + API 冒烟
 ├── docs/
-│   ├── screenshots/       # README 截图
+│   ├── screenshots/         # README 配图（01–08）
 │   ├── 技术亮点.md
-│   └── 项目故事.md
+│   ├── 项目故事.md
+│   └── 截图清单.md
 ├── docker-compose.yml
 ├── Dockerfile.backend
-├── Dockerfile.frontend
-└── tests/                 # 单元测试 + API 冒烟
+└── Dockerfile.frontend
 ```
+
 ---
 
-## 9. 相关文档
+## 相关文档
 
 | 文档 | 说明 |
 | --- | --- |
-| [docs/技术亮点.md](docs/技术亮点.md) | 架构与分析设计说明 |
-| [docs/项目故事.md](docs/项目故事.md) | 项目背景与 STAR 说明 |
+| [docs/技术亮点.md](docs/技术亮点.md) | 架构、分析设计与演示边界 |
+| [docs/项目故事.md](docs/项目故事.md) | 背景与 STAR 说明 |
 | [docs/截图清单.md](docs/截图清单.md) | 截图文件约定 |
+
+---
+
+## License
+
+[MIT](LICENSE)
