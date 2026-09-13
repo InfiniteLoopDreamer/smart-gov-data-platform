@@ -1,0 +1,26 @@
+# 智慧政务大数据平台 - 后端镜像
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+COPY backend/requirements.txt /app/backend/requirements.txt
+RUN pip install --upgrade pip \
+    && pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
+       --trusted-host pypi.tuna.tsinghua.edu.cn \
+       -r /app/backend/requirements.txt
+
+COPY shared /app/shared
+COPY backend /app/backend
+COPY generate_data.py /app/generate_data.py
+COPY import_nyc311.py /app/import_nyc311.py
+COPY scripts/docker_entrypoint.py /app/scripts/docker_entrypoint.py
+
+RUN mkdir -p /app/data /app/scripts
+
+EXPOSE 8000
+
+CMD ["python", "/app/scripts/docker_entrypoint.py"]

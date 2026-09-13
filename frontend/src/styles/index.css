@@ -1,0 +1,476 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body {
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+    background-color: #F4F4F6;
+    color: #303133;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #app {
+    min-height: 100vh;
+  }
+}
+
+@theme {
+  --color-gov-brown: #3D2817;
+  --color-gov-gold: #D2691E;
+  --color-gov-orange: #FF6B00;
+  --color-gov-amber: #FF9F43;
+  --color-gov-cream: #F4F4F6;
+  --color-gov-warm: #F0EFEA;
+  --shadow-gov-card: 0 2px 12px rgba(0, 0, 0, 0.05);
+  --shadow-gov-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+@layer components {
+  .gov-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-gov-card);
+    transition: all 0.2s;
+  }
+
+  .gov-card:hover {
+    box-shadow: var(--shadow-gov-hover);
+  }
+
+  .gov-gradient-header {
+    color: white;
+    background: linear-gradient(135deg, #8B6F47 0%, #A0826D 100%);
+  }
+
+  .gov-gradient-sidebar {
+    background: linear-gradient(180deg, #3D2817 0%, #2C1F12 100%);
+  }
+
+  .gov-text-gradient {
+    background: linear-gradient(135deg, #FF6B00 0%, #FF9F43 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gov-btn-primary {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #FF6B00 0%, #FF9F43 100%);
+    color: white;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .gov-btn-primary:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+  }
+
+  .gov-stat-card {
+    background-color: white;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-gov-card);
+    border-top: 4px solid;
+    transition: all 0.3s;
+  }
+
+  .gov-stat-card:hover {
+    box-shadow: var(--shadow-gov-hover);
+    transform: translateY(-0.25rem);
+  }
+
+  .gov-panel {
+    background-color: white;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-gov-card);
+  }
+
+  .gov-panel-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #303133;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #CBD5E1;
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: #94A3B8;
+  }
+}
+
+/* Glassmorphism Effect for Elements */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.glass-dark {
+  background: rgba(61, 40, 23, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ECharts Container */
+.echarts-container {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
+
+/* Animation Classes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(255, 107, 0, 0.2);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1400px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1400px) {
+  .bottom-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sidebar Menu Styles */
+.sidebar-menu {
+  height: 100%;
+  padding: 1rem 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+  gap: 0.75rem;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.menu-item.active {
+  background: linear-gradient(90deg, rgba(255, 107, 0, 0.3) 0%, rgba(255, 159, 67, 0.2) 100%);
+  color: white;
+  border-left-color: #FF9F43;
+}
+
+.menu-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 0.9375rem;
+}
+
+.menu-arrow {
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+}
+
+/* Header Bar Styles */
+.header-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  background: linear-gradient(135deg, #8B6F47 0%, #A0826D 100%);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.emblem-container {
+  position: relative;
+  width: 50px;
+  height: 50px;
+}
+
+.emblem {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.emblem-reflection {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.title-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.sub-title {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.weather-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.weather-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.weather-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.875rem;
+}
+
+.temperature {
+  font-weight: 600;
+}
+
+.weather-status {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.datetime-widget {
+  display: flex;
+  flex-direction: column;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.date {
+  font-weight: 500;
+}
+
+.time {
+  font-size: 0.75rem;
+  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.notification-badge {
+  cursor: pointer;
+}
+
+.notification-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: white;
+  transition: all 0.2s;
+}
+
+.notification-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-profile:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.avatar {
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.role {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.arrow-icon {
+  width: 16px;
+  height: 16px;
+  color: white;
+  opacity: 0.8;
+}

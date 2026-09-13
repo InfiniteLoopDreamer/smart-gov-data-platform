@@ -1,0 +1,14 @@
+# Streamlit 全局配置
+[theme]
+base = "dark"
+primaryColor = "#22D3EE"
+backgroundColor = "#061226"
+secondaryBackgroundColor = "#0F2038"
+textColor = "#E6F1FF"
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

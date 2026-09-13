@@ -1,0 +1,5 @@
+# 后端 API 依赖（Python 3.10 / 3.11）
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pandas==2.2.2
+numpy==1.26.4

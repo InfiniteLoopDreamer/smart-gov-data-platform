@@ -1,0 +1,10 @@
+# Smart Government Big Data Platform - pinned dependencies
+# Python 3.10 / 3.11
+# Install: pip install -r requirements.txt
+#
+# Note: charts use Apache ECharts 5.4.3 loaded via CDN in the browser,
+# so no extra pip package is required for charting.
+
+streamlit==1.35.0
+pandas==2.2.2
+numpy==1.26.4

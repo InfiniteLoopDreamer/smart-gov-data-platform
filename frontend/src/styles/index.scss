@@ -1,0 +1,74 @@
+// ============================================
+// 全局主题样式 —— Cameo 风格浅色后台
+// 主色 #2B5FD7 · 深蓝侧边栏 #1A2B4C · 白底卡片
+// ============================================
+
+// 主题变量（SCSS）
+$primary: #2B5FD7;
+$sidebar-bg: #1A2B4C;
+$header-bg: #FFFFFF;
+$content-bg: #F5F7FA;
+$text-color: #1E293B;
+$text-secondary: #64748B;
+$border-color: #E2E8F0;
+$card-radius: 8px;
+$card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+// 覆盖 Element Plus 主色（浅色系变量）
+:root {
+  --el-color-primary: #{$primary};
+  --el-color-primary-light-3: #5581E0;
+  --el-color-primary-light-5: #809FE8;
+  --el-color-primary-light-7: #AABDF0;
+  --el-color-primary-light-8: #C0CEF4;
+  --el-color-primary-light-9: #D5DFF8;
+  --el-color-primary-dark-2: #224CAC;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  color: $text-color;
+  background: $content-bg;
+  -webkit-font-smoothing: antialiased;
+}
+
+// 通用面板卡片
+.panel-card {
+  background: #fff;
+  border-radius: $card-radius;
+  box-shadow: $card-shadow;
+  border: 1px solid $border-color;
+  padding: 20px;
+}
+
+.panel-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-color;
+  margin: 0 0 16px;
+}
+
+// 滚动条
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}

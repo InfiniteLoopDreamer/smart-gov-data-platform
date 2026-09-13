@@ -1,0 +1,6 @@
+# 开发依赖（测试用）
+# 安装：pip install -r requirements-dev.txt
+-r dashboard/requirements.txt
+-r backend/requirements.txt
+pytest==8.2.0
+httpx>=0.27.0
