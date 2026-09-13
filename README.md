@@ -111,7 +111,7 @@ flowchart LR
 | 后端 API | [`backend/`](backend) | FastAPI · SQLite | 鉴权 RBAC、聚合接口、工单 |
 | 管理前端 | [`frontend/`](frontend) | Vue3 · Element Plus · ECharts | 政府看板 / 工单 / 趋势 |
 | 分析大屏 | [`dashboard/`](dashboard) | Streamlit | 只读可视化（可选） |
-| 测试 / CI | [`tests/`](tests) · [`.github/`](.github) | pytest · Actions | 单测、冒烟、构建 |
+| 测试 | [`tests/`](tests) | pytest | 单测与 API 冒烟 |
 
 ---
 
@@ -236,7 +236,7 @@ pytest -v
 | --- | --- |
 | 单元测试 | `shared`：指标、预测、质量等 |
 | API 冒烟 | 登录 · 401 · 403 · 看板 · 诉求 |
-| CI | GitHub Actions：`Python Tests` / `Vue Build` / `Docker Build` |
+| 本地回归 | `pytest -v`（约 50+ 用例） |
 
 ---
 
@@ -257,9 +257,8 @@ pytest -v
 ├── docker-compose.yml
 ├── Dockerfile.backend
 ├── Dockerfile.frontend
-└── .github/workflows/     # CI
+└── tests/                 # 单元测试 + API 冒烟
 ```
-
 ---
 
 ## 9. 相关文档
