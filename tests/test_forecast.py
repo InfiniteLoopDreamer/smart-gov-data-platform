@@ -26,6 +26,7 @@ def test_mape_rmse_mae():
     assert forecast.mape(actual, predicted) is not None
     assert forecast.rmse(actual, predicted) > 0
     assert forecast.mae(actual, predicted) == pytest.approx(50 / 3, abs=0.01)
+    assert forecast.wape(actual, predicted) == pytest.approx(50 / 600 * 100, abs=0.01)
 
 
 def test_detect_anomalies_finds_outlier():
@@ -60,7 +61,24 @@ def test_compute_forecast_has_metrics():
     assert "mape" in result and "rmse" in result and "fitted" in result
     assert len(result["predicted"]) == 7
     assert len(result["fitted"]) == 21
+    assert result["validation"]["method"].startswith("按时间留出")
+    assert {"mae", "wape", "data_as_of"}.issubset(result)
     assert result["method"].startswith("Holt-Winters")
+    assert result["baseline"]["method"].startswith("季节性朴素法")
+    assert len(result["baseline"]["predicted"]) == len(result["validation"]["actual"])
+    assert len(result["interval_lower"]) == 7
+    assert len(result["interval_upper"]) == 7
+    assert all(lower <= pred <= upper for lower, pred, upper in zip(
+        result["interval_lower"], result["predicted"], result["interval_upper"]
+    ))
+
+
+def test_forecast_anchors_to_latest_data_date():
+    cases = _make_cases()
+    cases["submit_time"] = cases["submit_time"] - pd.Timedelta(days=90)
+    result = metrics.compute_forecast(cases, days_back=21, days_forward=7)
+    assert str(result["data_as_of"]) == str(cases["submit_time"].max().date())
+    assert result["actual"][-1] > 0
 
 
 def test_compute_anomalies_structure():

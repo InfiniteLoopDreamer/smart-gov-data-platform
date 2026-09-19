@@ -56,6 +56,38 @@ def get_connection() -> sqlite3.Connection:
     return sqlite3.connect(DB_PATH)
 
 
+def ensure_indexes() -> None:
+    """为常用筛选、排序和时间窗口查询建立幂等索引。"""
+    conn = get_connection()
+    try:
+        existing_tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        statements = {
+            "cases": [
+                "CREATE INDEX IF NOT EXISTS idx_cases_submit_time ON cases(submit_time)",
+                "CREATE INDEX IF NOT EXISTS idx_cases_status_region ON cases(status, region)",
+                "CREATE INDEX IF NOT EXISTS idx_cases_item_type ON cases(item_type)",
+            ],
+            "appeals": [
+                "CREATE INDEX IF NOT EXISTS idx_appeals_create_time ON appeals(create_time)",
+                "CREATE INDEX IF NOT EXISTS idx_appeals_status_region ON appeals(status, region)",
+            ],
+            "audit_logs": [
+                "CREATE INDEX IF NOT EXISTS idx_audit_logs_time ON audit_logs(op_time)",
+                "CREATE INDEX IF NOT EXISTS idx_audit_logs_level ON audit_logs(level)",
+            ],
+        }
+        for table, sql_list in statements.items():
+            if table in existing_tables:
+                for sql in sql_list:
+                    conn.execute(sql)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def list_tables() -> list:
     """列出数据库中的所有表名。"""
     conn = get_connection()

@@ -65,24 +65,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { auth } from '@/auth'
 import {
   Home,
   BarChart3,
   Building2,
   Database,
   TrendingUp,
-  Monitor,
   Settings,
   ChevronRight
 } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
+const emit = defineEmits(['navigate'])
 const expandedMenus = ref([])
 
-const menuItems = [
+const adminMenuItems = [
   { title: '首页', icon: Home, path: '/home', index: 'home' },
   {
     title: '数据概览',
@@ -118,11 +119,9 @@ const menuItems = [
     index: 'business-analysis',
     children: [
       { title: '统计报表', path: '/reports' },
-      { title: '预测分析', path: '/overview-trend' },
       { title: '督办考核', path: '/supervision' }
     ]
   },
-  { title: '可视化大屏', icon: Monitor, path: '/visualization', index: 'visualization' },
   {
     title: '系统管理',
     icon: Settings,
@@ -133,6 +132,23 @@ const menuItems = [
     ]
   }
 ]
+
+const citizenMenuItems = [
+  { title: '服务首页', icon: Home, path: '/citizen', index: 'citizen-home' },
+  { title: '诉求服务', icon: Building2, path: '/appeal', index: 'citizen-appeal' },
+  { title: '办事指南', icon: BarChart3, path: '/guide', index: 'citizen-guide' }
+]
+
+const staffMenuItems = [
+  { title: '本部门工单', icon: Building2, path: '/case', index: 'staff-case' },
+  { title: '办事指南', icon: BarChart3, path: '/guide', index: 'staff-guide' }
+]
+
+const menuItems = computed(() => {
+  if (auth.isAdmin) return adminMenuItems
+  if (auth.isStaff) return staffMenuItems
+  return citizenMenuItems
+})
 
 function isActive(menu) {
   return route.path === menu.path
@@ -149,7 +165,10 @@ function toggleSubMenu(menu) {
 }
 
 function handleMenuClick(menu) {
-  if (menu.path) router.push(menu.path)
+  if (menu.path) {
+    router.push(menu.path)
+    emit('navigate')
+  }
 }
 </script>
 
@@ -160,22 +179,14 @@ function handleMenuClick(menu) {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(48, 30, 16, 0.88) 0%, rgba(28, 16, 8, 0.92) 100%),
-    repeating-linear-gradient(
-      90deg,
-      #3b2414 0px,
-      #4a301c 3px,
-      #2a1a0e 6px,
-      #3e2716 9px
-    );
+  background: linear-gradient(180deg, #0f172a 0%, #111c33 55%, #172554 100%);
 }
 
 .sidebar::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 120%, rgba(196, 138, 43, 0.18), transparent 55%);
+  background: radial-gradient(ellipse at 50% 115%, rgba(59, 130, 246, 0.22), transparent 58%);
   pointer-events: none;
 }
 
@@ -208,9 +219,9 @@ function handleMenuClick(menu) {
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #E0A54A 0%, #C47A22 55%, #B86A18 100%);
+  background: linear-gradient(100deg, #f59e0b 0%, #ea580c 100%);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(196, 122, 34, 0.35);
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.28);
 }
 
 .nav-icon { flex-shrink: 0; }

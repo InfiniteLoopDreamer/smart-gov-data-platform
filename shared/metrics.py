@@ -19,6 +19,14 @@ TOTAL_WINDOWS = 120
 OPEN_STATUSES = {"待受理", "办理中", "待审批"}
 
 
+def _reference_day(df: pd.DataFrame, column: str) -> pd.Timestamp:
+    """以数据中的最新日期作为分析基准，避免离线数据随系统日期产生虚假零值。"""
+    if df.empty or column not in df.columns:
+        return pd.Timestamp.now().normalize()
+    latest = pd.to_datetime(df[column], errors="coerce").max()
+    return latest.normalize() if pd.notna(latest) else pd.Timestamp.now().normalize()
+
+
 def _safe_mean(series: pd.Series, default: float = 0.0) -> float:
     """安全计算均值，空序列返回默认值。"""
     if series is None or len(series) == 0:
@@ -40,7 +48,7 @@ def compute_kpis(cases: pd.DataFrame) -> dict:
     Returns:
         dict: 包含 4 项 KPI 的数值、单位、环比增量与涨跌颜色语义。
     """
-    today = pd.Timestamp.now().normalize()
+    today = _reference_day(cases, "submit_time")
     yesterday = today - pd.Timedelta(days=1)
 
     submit_day = cases["submit_time"].dt.normalize()
@@ -125,7 +133,7 @@ def compute_trend(cases: pd.DataFrame, days: int = 7) -> pd.DataFrame:
     Returns:
         pd.DataFrame: 含 date / count / finished_count 三列，按日期升序。
     """
-    today = pd.Timestamp.now().normalize()
+    today = _reference_day(cases, "submit_time")
     start = today - pd.Timedelta(days=days - 1)
     recent = cases[cases["submit_time"] >= start]
 
@@ -247,11 +255,10 @@ def compute_department_ranking(cases: pd.DataFrame) -> pd.DataFrame:
         avg_satisfaction=("satisfaction", "mean"),
     ).reset_index()
 
-    # 效能得分：满意度越高、时长越短，得分越高（归一化后加权）
-    grp["score"] = (
-        grp["avg_satisfaction"].fillna(0) * 40
-        - grp["avg_duration"].fillna(0) * 2
-    )
+    # 效能得分（0~100）：满意度 60 分 + 24 小时内办结效率 40 分。
+    satisfaction_score = grp["avg_satisfaction"].fillna(0).clip(0, 5) / 5 * 60
+    duration_score = (1 - grp["avg_duration"].fillna(24) / 24).clip(0, 1) * 40
+    grp["score"] = (satisfaction_score + duration_score).round(1)
     grp["avg_duration"] = grp["avg_duration"].round(1)
     grp["avg_satisfaction"] = grp["avg_satisfaction"].round(2)
     grp = grp.sort_values("score", ascending=False).reset_index(drop=True)
@@ -304,7 +311,7 @@ def compute_forecast(cases: pd.DataFrame, days_back: int = 21, days_forward: int
     Returns:
         dict: 历史日期、实际值、拟合值、预测值及 MAPE/RMSE 误差指标。
     """
-    today = pd.Timestamp.now().normalize()
+    today = _reference_day(cases, "submit_time")
     start = today - pd.Timedelta(days=days_back - 1)
     recent = cases[cases["submit_time"] >= start]
 
@@ -320,14 +327,47 @@ def compute_forecast(cases: pd.DataFrame, days_back: int = 21, days_forward: int
     daily.index.name = "date"
 
     values = daily["count"].values.astype(float)
+
+    # 严格按时间顺序留出最后 7 天评估，避免把样本内拟合误差写成预测效果。
+    holdout_days = min(7, max(1, len(values) // 4))
+    train_values = values[:-holdout_days]
+    holdout_actual = values[-holdout_days:]
+    validation_result = forecast.holt_winters(
+        train_values,
+        season_len=min(7, max(1, len(train_values))),
+        forecast_steps=holdout_days,
+    )
+    holdout_predicted = np.clip(validation_result["forecast"], 0, None)
+    validation_mape = forecast.mape(holdout_actual, holdout_predicted)
+    validation_rmse = forecast.rmse(holdout_actual, holdout_predicted)
+    validation_mae = forecast.mae(holdout_actual, holdout_predicted)
+    validation_wape = forecast.wape(holdout_actual, holdout_predicted)
+
+    # 季节性朴素基线：直接使用上一周同一星期的办件量。
+    # 有基线才能判断模型是否真正优于“照抄上周”，避免只展示孤立误差指标。
+    baseline_predicted = []
+    for step in range(holdout_days):
+        source_index = len(train_values) - 7 + step
+        baseline_predicted.append(
+            train_values[source_index] if 0 <= source_index < len(train_values) else train_values[-1]
+        )
+    baseline_predicted = np.asarray(baseline_predicted, dtype=float)
+    baseline_wape = forecast.wape(holdout_actual, baseline_predicted)
+    baseline_mae = forecast.mae(holdout_actual, baseline_predicted)
+    improvement = None
+    if baseline_wape not in (None, 0) and validation_wape is not None:
+        improvement = (baseline_wape - validation_wape) / baseline_wape * 100
+
+    # 使用完整历史窗口拟合最终模型，再预测未来 N 天。
     result = forecast.holt_winters(values, season_len=7, forecast_steps=days_forward)
     fitted = result["fitted"]
     predicted = np.clip(result["forecast"], 0, None)
 
-    # 样本内一步预测的误差评估
-    mask = ~np.isnan(fitted)
-    mape_val = forecast.mape(values[mask], fitted[mask]) if mask.any() else None
-    rmse_val = forecast.rmse(values[mask], fitted[mask]) if mask.any() else None
+    # 参考区间：用时间留出集 RMSE 估计未来波动范围。
+    # 这是模型风险提示，不作为严格统计置信区间使用。
+    interval_radius = 1.96 * validation_rmse
+    interval_lower = np.clip(predicted - interval_radius, 0, None)
+    interval_upper = predicted + interval_radius
 
     moving_avg = daily["count"].rolling(window=7, min_periods=1).mean()
 
@@ -338,8 +378,27 @@ def compute_forecast(cases: pd.DataFrame, days_back: int = 21, days_forward: int
         "fitted": [round(float(v), 1) if not np.isnan(v) else None for v in fitted],
         "future_dates": [d.date() for d in pd.date_range(today + pd.Timedelta(days=1), periods=days_forward)],
         "predicted": [int(round(v)) for v in predicted],
-        "mape": round(mape_val, 2) if mape_val is not None else None,
-        "rmse": round(rmse_val, 2) if rmse_val is not None else None,
+        "interval_lower": [int(round(v)) for v in interval_lower],
+        "interval_upper": [int(round(v)) for v in interval_upper],
+        "mape": round(validation_mape, 2) if validation_mape is not None else None,
+        "rmse": round(validation_rmse, 2),
+        "mae": round(validation_mae, 2),
+        "wape": round(validation_wape, 2) if validation_wape is not None else None,
+        "validation": {
+            "method": f"按时间留出最后 {holdout_days} 天",
+            "dates": [d.date() for d in daily.index[-holdout_days:]],
+            "actual": [int(v) for v in holdout_actual],
+            "predicted": [int(round(v)) for v in holdout_predicted],
+        },
+        "baseline": {
+            "method": "季节性朴素法（上一周同日）",
+            "wape": round(baseline_wape, 2) if baseline_wape is not None else None,
+            "mae": round(baseline_mae, 2),
+            "predicted": [int(round(v)) for v in baseline_predicted],
+            "improvement_pct": round(improvement, 2) if improvement is not None else None,
+        },
+        "interval_note": "基于留出集 RMSE 的 95% 参考区间",
+        "data_as_of": today.date(),
         "method": "Holt-Winters（加法季节，周期 7 天）",
     }
 
@@ -358,7 +417,7 @@ def compute_anomalies(cases: pd.DataFrame, days_back: int = 60, threshold: float
     Returns:
         list: 异常点列表，含 date / count / z_score / direction。
     """
-    today = pd.Timestamp.now().normalize()
+    today = _reference_day(cases, "submit_time")
     start = today - pd.Timedelta(days=days_back - 1)
     recent = cases[cases["submit_time"] >= start]
 
@@ -454,7 +513,8 @@ def compute_data_quality(cases: pd.DataFrame, appeals: pd.DataFrame) -> dict:
     return {
         "total_cases": total_cases,
         "total_appeals": total_appeals,
-        "total": total_cases + total_appeals,
+        # cases / appeals 是同一批原始工单的两个主题视图，不能重复相加。
+        "total": total_cases,
         "completeness": completeness,
         "region_unspecified": region_unspecified,
         "duplicate_appeals": duplicate_appeals,

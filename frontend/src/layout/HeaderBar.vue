@@ -1,6 +1,9 @@
 <template>
   <header class="header-bar">
     <div class="header-left">
+      <button class="menu-toggle" type="button" aria-label="打开导航菜单" @click="emit('toggle-menu')">
+        <MenuIcon :size="22" />
+      </button>
       <div class="emblem">
         <svg viewBox="0 0 100 100" class="emblem-svg">
           <defs>
@@ -18,16 +21,16 @@
         </svg>
       </div>
       <div class="title-block">
-        <h1 class="main-title">智慧政务数据管理平台</h1>
+        <h1 class="main-title">智慧政务数据分析平台</h1>
         <p class="sub-title">数据赋能政务 · 智慧服务民生</p>
       </div>
     </div>
 
     <div class="header-right">
       <div class="weather-widget">
-        <CloudSun :size="18" color="#FFD700" />
-        <span>25°C</span>
-        <span class="weather-status">晴</span>
+        <Database :size="18" color="#FFD700" />
+        <span>NYC 311</span>
+        <span class="weather-status">公开数据</span>
       </div>
       <div class="datetime-widget">
         <span class="date">{{ currentDate }}</span>
@@ -41,11 +44,15 @@
             </button>
           </el-badge>
         </template>
-        <div class="notice-pop">{{ notificationCount }} 条未办结工单待处理（来自 NYC 311 真实数据）</div>
+        <div class="notice-pop">{{ noticeText }}</div>
       </el-popover>
       <el-dropdown trigger="click" @command="handleCommand">
         <div class="user-profile">
-          <el-avatar :size="36" src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin" />
+          <el-avatar :size="36" :class="['profile-avatar', { admin: auth.isAdmin }]">
+            <UserRoundIcon v-if="auth.isAdmin" :size="20" />
+            <BuildingIcon v-else-if="auth.isStaff" :size="20" />
+            <UserRoundIcon v-else :size="20" />
+          </el-avatar>
           <div class="user-info">
             <span class="username">{{ displayName }}</span>
             <span class="role">{{ displayRole }}</span>
@@ -69,7 +76,16 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { auth } from '@/auth'
 import { api } from '@/api'
-import { Bell as BellIcon, ChevronDown as ChevronDownIcon, CloudSun } from 'lucide-vue-next'
+import {
+  Bell as BellIcon,
+  ChevronDown as ChevronDownIcon,
+  Database,
+  Menu as MenuIcon,
+  Building2 as BuildingIcon,
+  UserRound as UserRoundIcon
+} from 'lucide-vue-next'
+
+const emit = defineEmits(['toggle-menu'])
 
 const router = useRouter()
 const notificationCount = ref(0)
@@ -77,8 +93,17 @@ const currentTime = ref('')
 const currentDate = ref('')
 let timer = null
 
-const displayName = computed(() => auth.user?.username || 'admin')
-const displayRole = computed(() => (auth.isAdmin || !auth.user ? '系统管理员' : '普通用户'))
+const displayName = computed(() => auth.name)
+const displayRole = computed(() => {
+  if (auth.isAdmin || !auth.user) return '超级管理员 · 紧急介入'
+  if (auth.isStaff) return auth.department || '部门人员'
+  return '群众用户'
+})
+const noticeText = computed(() => {
+  if (auth.isAdmin) return `${notificationCount.value} 条紧急工单待介入`
+  if (auth.isStaff) return `${notificationCount.value} 条本部门工单待处理`
+  return '暂无待处理事项'
+})
 
 function updateDateTime() {
   const now = new Date()
@@ -100,15 +125,15 @@ function handleCommand(command) {
 onMounted(async () => {
   updateDateTime()
   timer = setInterval(updateDateTime, 1000)
-  try {
-    const data = await api.overdue(3)
-    notificationCount.value = Array.isArray(data) ? Math.min(data.length, 99) : 0
-  } catch {
+  if (auth.isAdmin || auth.isStaff) {
     try {
-      const dash = await api.kpi()
-      notificationCount.value = dash?.overdue || 1
+      const data = await api.workOrders({ limit: 1000 })
+      const pending = auth.isAdmin
+        ? data.filter((item) => item.priority === '紧急' && item.status !== '已办结')
+        : data.filter((item) => item.status !== '已办结')
+      notificationCount.value = Math.min(pending.length, 99)
     } catch {
-      notificationCount.value = 1
+      notificationCount.value = 0
     }
   }
 })
@@ -130,7 +155,21 @@ onUnmounted(() => {
   padding: 0 24px;
   box-sizing: border-box;
   overflow: visible;
-  background: linear-gradient(90deg, rgba(42, 24, 12, 0.78) 0%, rgba(90, 58, 28, 0.62) 100%);
+  background: linear-gradient(100deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 58, 95, 0.78) 100%);
+}
+
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
 }
 
 .header-left,
@@ -247,6 +286,19 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
+.profile-avatar {
+  color: #dbeafe;
+  background: linear-gradient(145deg, #2563eb, #1e3a8a);
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.28);
+}
+
+.profile-avatar.admin {
+  color: #eff6ff;
+  background: linear-gradient(145deg, #3b82f6, #1e40af);
+  border-color: rgba(219, 234, 254, 0.6);
+}
+
 .user-info {
   display: flex;
   flex-direction: column;
@@ -288,5 +340,23 @@ onUnmounted(() => {
     padding: 0 14px;
     gap: 12px;
   }
+}
+
+@media (max-width: 900px) {
+  .menu-toggle { display: inline-flex; }
+  .header-bar { padding: 0 12px; }
+  .emblem { width: 40px; height: 40px; }
+  .emblem-svg { width: 29px; height: 29px; }
+  .weather-widget, .datetime-widget, .sub-title, .user-info { display: none; }
+  .header-right { gap: 8px; }
+  .user-profile { padding: 3px; border: 0; background: transparent; }
+  .user-profile > :last-child { display: none; }
+}
+
+@media (max-width: 520px) {
+  .main-title { font-size: 15px; letter-spacing: 0; }
+  .header-left { gap: 8px; }
+  .emblem { display: none; }
+  .icon-btn { padding: 7px; }
 }
 </style>

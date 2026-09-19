@@ -47,6 +47,12 @@ export const api = {
   async users() {
     return (await client.get('/api/users')).data
   },
+  async createUser(payload) {
+    return (await client.post('/api/users', payload)).data
+  },
+  async updateUser(id, payload) {
+    return (await client.patch(`/api/users/${id}`, payload)).data
+  },
   // ---- 诉求 ----
   async submitAppeal(payload) {
     return (await client.post('/api/appeals', payload)).data
@@ -81,6 +87,9 @@ export const api = {
   },
   async caseCategories() {
     return (await client.get('/api/case-categories')).data
+  },
+  async serviceCategories() {
+    return (await client.get('/api/service-categories')).data
   },
   async departmentRanking() {
     return (await client.get('/api/department-ranking')).data

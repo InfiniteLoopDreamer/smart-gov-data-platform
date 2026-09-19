@@ -46,10 +46,10 @@
         <h3 class="panel-title">超时工单（在办且超过 {{ days }} 天未办结）</h3>
         <div>
           <el-input-number v-model="days" :min="1" :max="30" size="small" style="margin-right: 8px" />
-          <el-button size="small" @click="loadOverdue">刷新</el-button>
+          <el-button size="small" :loading="loading" @click="refreshAll">刷新</el-button>
         </div>
       </div>
-      <el-table :data="overdue" stripe :row-class-name="() => 'overdue-row'">
+      <el-table :data="pagedOverdue" stripe :row-class-name="() => 'overdue-row'">
         <el-table-column prop="appeal_id" label="工单编号" width="140" />
         <el-table-column prop="content" label="诉求内容" min-width="200" show-overflow-tooltip />
         <el-table-column prop="category" label="分类" width="120" />
@@ -63,6 +63,10 @@
         </el-table-column>
         <el-table-column prop="create_time" label="受理时间" width="170" />
       </el-table>
+      <div class="pagination-row" v-if="overdue.length">
+        <span>共 {{ overdue.length }} 条超时工单</span>
+        <el-pagination v-model:current-page="currentPage" :page-size="20" :total="overdue.length" layout="prev, pager, next" />
+      </div>
       <el-empty v-if="overdue.length === 0" description="暂无超时工单" />
     </div>
   </div>
@@ -77,10 +81,17 @@ const days = ref(3)
 const overdue = ref([])
 const ranking = ref([])
 const summary = ref({ open: 0, overdue: 0, finished: 0 })
+const loading = ref(false)
+const currentPage = ref(1)
+const pagedOverdue = computed(() => {
+  const start = (currentPage.value - 1) * 20
+  return overdue.value.slice(start, start + 20)
+})
 
 async function loadOverdue() {
   try {
     overdue.value = await api.workOrderOverdue({ days: days.value, limit: 100 })
+    currentPage.value = 1
   } catch {
     overdue.value = []
   }
@@ -100,6 +111,12 @@ async function loadSummary() {
   } catch {
     summary.value = { open: 0, overdue: 0, finished: 0 }
   }
+}
+
+async function refreshAll() {
+  loading.value = true
+  await Promise.all([loadOverdue(), loadRanking(), loadSummary()])
+  loading.value = false
 }
 
 const rankOption = computed(() => ({
@@ -133,11 +150,7 @@ const rankOption = computed(() => ({
   ]
 }))
 
-onMounted(() => {
-  loadOverdue()
-  loadRanking()
-  loadSummary()
-})
+onMounted(refreshAll)
 </script>
 
 <style scoped lang="scss">
@@ -174,6 +187,15 @@ onMounted(() => {
 
 .table-header .panel-title {
   margin: 0;
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 13px;
 }
 
 :deep(.overdue-row) {

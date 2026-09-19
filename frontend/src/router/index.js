@@ -22,16 +22,10 @@ const routes = [
         meta: { title: '政府看板', icon: 'DataAnalysis', roles: ['admin'] }
       },
       {
-        path: 'visualization',
-        name: 'Visualization',
-        component: () => import('@/views/dashboard/Home.vue'),
-        meta: { title: '可视化大屏', icon: 'Monitor', roles: ['admin'] }
-      },
-      {
         path: 'case',
         name: 'CaseManagement',
         component: () => import('@/views/case/CaseManagement.vue'),
-        meta: { title: '诉求工单处置', icon: 'Document', roles: ['admin'] }
+        meta: { title: '诉求工单处置', icon: 'Document', roles: ['admin', 'staff'] }
       },
       {
         path: 'supervision',
@@ -104,7 +98,7 @@ const routes = [
         path: 'guide',
         name: 'ServiceGuide',
         component: () => import('@/views/citizen/ServiceGuide.vue'),
-        meta: { title: '办事指南', icon: 'Notebook', roles: ['admin', 'user'] }
+        meta: { title: '办事指南', icon: 'Notebook', roles: ['admin', 'staff', 'user'] }
       }
     ]
   }
@@ -116,7 +110,7 @@ const router = createRouter({
 })
 
 // 各角色的默认首页
-const ROLE_HOME = { admin: '/home', user: '/citizen' }
+const ROLE_HOME = { admin: '/home', staff: '/case', user: '/citizen' }
 
 router.beforeEach((to, _from, next) => {
   if (to.path === '/login') {

@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page" v-loading="loading">
     <el-tabs v-model="activeTab">
       <!-- 质量概览 -->
       <el-tab-pane label="质量概览" name="overview">
@@ -74,6 +74,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { api } from '@/api'
 
 const activeTab = ref('overview')
@@ -87,8 +88,10 @@ const summary = ref([
 
 const issues = ref([])
 const anomalies = ref([])
+const loading = ref(false)
 
 async function loadQuality() {
+  loading.value = true
   try {
     const q = await api.quality()
     const problemCount = q.issues.reduce((s, i) => s + i.count, 0)
@@ -98,10 +101,12 @@ async function loadQuality() {
       { title: '问题记录', value: problemCount.toLocaleString(), color: '#F59E0B' },
       { title: '异常日期', value: `${q.anomalies.length} 个`, color: '#EF4444' }
     ]
-    issues.value = q.issues
+    issues.value = q.issues.filter((item) => item.count > 0)
     anomalies.value = q.anomalies
   } catch {
-    /* 后端未启动 */
+    ElMessage.error('质量检测失败，请稍后重试')
+  } finally {
+    loading.value = false
   }
 }
 

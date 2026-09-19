@@ -41,6 +41,13 @@ import { auth } from '@/auth'
 const ranking = ref([])
 const categories = ref([])
 const trend = ref([])
+const categoryChartData = computed(() => {
+  const sorted = [...categories.value].sort((a, b) => b.value - a.value)
+  if (sorted.length <= 7) return sorted
+  const top = sorted.slice(0, 6)
+  const other = sorted.slice(6).reduce((sum, item) => sum + Number(item.value || 0), 0)
+  return [...top, { name: '其他', value: other }]
+})
 
 onMounted(async () => {
   try {
@@ -70,7 +77,7 @@ const categoryOption = computed(() => ({
       center: ['50%', '44%'],
       itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
       label: { show: false },
-      data: categories.value.slice(0, 7)
+      data: categoryChartData.value
     }
   ]
 }))
@@ -155,7 +162,32 @@ const trendOption = computed(() => ({
 }))
 
 function exportReport() {
-  ElMessage.success('报表已导出为 CSV，请查看下载目录')
+  if (!trend.value.length && !ranking.value.length && !categories.value.length) {
+    ElMessage.warning('暂无可导出的报表数据')
+    return
+  }
+  const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`
+  const lines = [
+    ['近30天办件趋势'],
+    ['日期', '办件量', '办结量'],
+    ...trend.value.map((item) => [item.date, item.count, item.finished_count]),
+    [],
+    ['部门效能排名'],
+    ['部门', '办件量', '平均办理时长', '效能得分'],
+    ...ranking.value.map((item) => [item.department, item.case_count, item.avg_duration, item.score]),
+    [],
+    ['办件分类'],
+    ['分类', '数量'],
+    ...categories.value.map((item) => [item.name, item.value])
+  ]
+  const csv = `\uFEFF${lines.map((row) => row.map(escapeCsv).join(',')).join('\r\n')}`
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `智慧政务分析报表-${new Date().toISOString().slice(0, 10)}.csv`
+  anchor.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success('CSV 报表已生成')
 }
 </script>
 

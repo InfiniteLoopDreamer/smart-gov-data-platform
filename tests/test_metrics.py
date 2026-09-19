@@ -1,4 +1,4 @@
-"""src.metrics 纯函数单元测试。
+"""shared.metrics 纯函数单元测试。
 
 所有测试使用构造的小型 DataFrame，不依赖 generate_data.py 生成的数据，
 保证测试快速、确定、可离线运行。
@@ -96,6 +96,14 @@ def test_compute_department_ranking_sorted_by_score():
     scores = rank["score"].tolist()
     assert scores == sorted(scores, reverse=True)
     assert "rank" in rank.columns
+    assert rank["score"].between(0, 100).all()
+
+
+def test_data_quality_does_not_double_count_topic_views():
+    result = metrics.compute_data_quality(_make_cases(), _make_appeals())
+    assert result["total"] == len(_make_cases())
+    assert result["total_cases"] == 40
+    assert result["total_appeals"] == 20
 
 
 def test_compute_forecast_shape():

@@ -5,7 +5,7 @@
 <script setup>
 // 通用 ECharts 封装：传入 option 与高度，自动处理初始化 / 自适应 / 销毁
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
-import * as echarts from 'echarts'
+import echarts from '@/charts/echarts'
 
 const props = defineProps({
   option: { type: Object, required: true },

@@ -25,6 +25,12 @@
       <!-- 注册表单 -->
       <el-form v-else :model="registerForm" @keyup.enter="handleRegister">
         <el-form-item>
+          <el-radio-group v-model="registerForm.role" class="role-picker">
+            <el-radio-button value="user">群众账号</el-radio-button>
+            <el-radio-button value="staff">部门人员</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item>
           <el-input v-model="registerForm.username" placeholder="用户名" size="large" clearable>
             <template #prefix><el-icon><User /></el-icon></template>
           </el-input>
@@ -39,11 +45,15 @@
             <template #prefix><el-icon><Postcard /></el-icon></template>
           </el-input>
         </el-form-item>
-        <el-form-item>
-          <el-input v-model="registerForm.department" placeholder="所属部门（选填）" size="large" clearable>
-            <template #prefix><el-icon><OfficeBuilding /></el-icon></template>
-          </el-input>
+        <el-form-item v-if="registerForm.role === 'staff'">
+          <el-select v-model="registerForm.department" placeholder="请选择所属部门" size="large" style="width: 100%">
+            <el-option v-for="item in departments" :key="item" :label="item" :value="item" />
+          </el-select>
         </el-form-item>
+        <el-form-item v-if="registerForm.role === 'staff'">
+          <el-input v-model="registerForm.staff_code" type="password" placeholder="单位注册码" size="large" show-password />
+        </el-form-item>
+        <p v-if="registerForm.role === 'staff'" class="role-note">部门将在注册时绑定，登录后只能处理本部门工单。</p>
         <el-button type="primary" size="large" class="login-btn" :loading="loading" @click="handleRegister">
           注册并登录
         </el-button>
@@ -54,7 +64,7 @@
         <span v-else>已有账号？<a @click="mode = 'login'">返回登录</a></span>
       </div>
 
-      <p class="login-tip">管理员：admin / admin123　·　普通用户：user / user123</p>
+      <p class="login-tip">管理员：admin / admin123　·　群众：user / user123<br>部门人员：traffic_staff / staff123</p>
     </div>
   </div>
 </template>
@@ -65,6 +75,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { api } from '@/api'
 import { auth } from '@/auth'
+import { departments, roleHome } from '@/constants/catalog'
 
 const router = useRouter()
 const mode = ref('login')
@@ -79,7 +90,9 @@ const registerForm = reactive({
   username: '',
   password: '',
   name: '',
-  department: ''
+  department: '',
+  role: 'user',
+  staff_code: ''
 })
 
 async function handleLogin() {
@@ -92,7 +105,7 @@ async function handleLogin() {
     const { token, user } = await api.login(loginForm.username, loginForm.password)
     auth.set(token, user)
     ElMessage.success(`欢迎回来，${user.name}`)
-    router.push(user.role === 'admin' ? '/home' : '/citizen')
+    router.push(roleHome[user.role] || '/citizen')
   } catch (err) {
     const detail = err.response?.data?.detail || '登录失败'
     ElMessage.error(detail === '用户名或密码错误' ? detail : '无法连接后端，请确认服务已启动')
@@ -106,6 +119,14 @@ async function handleRegister() {
     ElMessage.warning('请填写用户名和密码')
     return
   }
+  if (registerForm.role === 'staff' && !registerForm.department) {
+    ElMessage.warning('部门人员请选择所属部门')
+    return
+  }
+  if (registerForm.role === 'staff' && !registerForm.staff_code) {
+    ElMessage.warning('请输入单位提供的注册码')
+    return
+  }
   loading.value = true
   try {
     await api.register(registerForm)
@@ -113,7 +134,7 @@ async function handleRegister() {
     // 注册成功后自动登录
     const { token, user } = await api.login(registerForm.username, registerForm.password)
     auth.set(token, user)
-    router.push(user.role === 'admin' ? '/home' : '/citizen')
+    router.push(roleHome[user.role] || '/citizen')
   } catch (err) {
     const detail = err.response?.data?.detail || '注册失败'
     ElMessage.error(detail)
@@ -172,6 +193,11 @@ async function handleRegister() {
   width: 100%;
   margin-top: 4px;
 }
+
+.role-picker { width: 100%; display: flex; }
+.role-picker :deep(.el-radio-button) { flex: 1; }
+.role-picker :deep(.el-radio-button__inner) { width: 100%; }
+.role-note { margin: -8px 0 14px; text-align: left; font-size: 12px; color: #64748b; }
 
 .login-switch {
   margin-top: 16px;

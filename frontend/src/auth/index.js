@@ -22,6 +22,12 @@ export const auth = {
   get isAdmin() {
     return this.role === 'admin'
   },
+  get isStaff() {
+    return this.role === 'staff'
+  },
+  get department() {
+    return this.user?.department || ''
+  },
   get name() {
     return this.user?.name || this.user?.username || '用户'
   },

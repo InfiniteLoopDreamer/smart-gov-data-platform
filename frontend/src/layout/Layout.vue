@@ -1,14 +1,14 @@
 <template>
   <el-container class="layout-container">
-    <!-- 左侧深棕红色导航 -->
-    <el-aside width="220px" class="layout-aside">
-      <SidebarMenu />
+    <div v-if="mobileMenuOpen" class="sidebar-mask" @click="mobileMenuOpen = false"></div>
+    <el-aside width="220px" :class="['layout-aside', { open: mobileMenuOpen }]">
+      <SidebarMenu @navigate="mobileMenuOpen = false" />
     </el-aside>
 
     <!-- 右侧：顶栏 + 内容区 -->
     <el-container class="layout-body">
       <el-header height="72px" class="layout-header">
-        <HeaderBar />
+        <HeaderBar @toggle-menu="mobileMenuOpen = !mobileMenuOpen" />
       </el-header>
       <el-main class="layout-main">
         <router-view />
@@ -18,8 +18,11 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import SidebarMenu from './SidebarMenu.vue'
 import HeaderBar from './HeaderBar.vue'
+
+const mobileMenuOpen = ref(false)
 </script>
 
 <style scoped>
@@ -30,14 +33,14 @@ import HeaderBar from './HeaderBar.vue'
 }
 
 .layout-aside {
-  background: #2C1A0E;
+  background: #0f172a;
   overflow: hidden;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
 .layout-header {
   overflow: visible;
-  background: linear-gradient(90deg, #6B4A28 0%, #8B6238 50%, #7A5530 100%);
+  background: linear-gradient(100deg, #0f172a 0%, #172554 58%, #1e3a5f 100%);
   border-bottom: none;
   padding: 0;
   display: flex;
@@ -45,6 +48,42 @@ import HeaderBar from './HeaderBar.vue'
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   position: relative;
   z-index: 10;
+}
+
+.sidebar-mask {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .layout-aside {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 260px !important;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+  }
+
+  .layout-aside.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+  }
+
+  .layout-header {
+    height: 64px !important;
+  }
+
+  .layout-main {
+    padding: 12px;
+  }
 }
 
 .layout-body {

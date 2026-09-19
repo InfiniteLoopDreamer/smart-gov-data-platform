@@ -126,10 +126,11 @@ function levelType(level) {
   return map[level] || 'info'
 }
 
-function refresh() {
+async function refresh() {
   keyword.value = ''
   levelFilter.value = ''
   currentPage.value = 1
+  await fetchLogs()
 }
 </script>
 

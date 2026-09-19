@@ -1,4 +1,4 @@
-# 智慧政务大数据分析平台
+# 智慧政务数据分析平台
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Vue](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js&logoColor=white)](https://vuejs.org/)
@@ -13,10 +13,10 @@
 
 | | |
 | --- | --- |
-| **数据规模** | 诉求 50,000 + 办件 50,000 · 约 50 天窗口 · 五大行政区 |
+| **数据规模** | 50,000 条 311 工单 · 映射为诉求/办件主题表 · 约 50 天窗口 |
 | **分析能力** | Holt-Winters 预测 · 3-sigma 异常检测 · Data Quality |
-| **演示指标** | MAPE ≈ 16.5% · RMSE ≈ 329 · 完整度 99.36% |
-| **工程形态** | FastAPI + Vue3 + SQLite · Docker 一键部署 · 50+ pytest |
+| **演示指标** | 留出集 MAPE 14.22% · WAPE 14.01% · 完整度 99.36% |
+| **工程形态** | FastAPI + Vue3 + SQLite · Docker 一键部署 · 63 pytest |
 
 <p align="center">
   <img src="docs/screenshots/02-home.png" alt="政府首页看板" width="92%" />
@@ -59,12 +59,12 @@
 
 ### 登录与角色分流
 
-管理员进入政府看板，普通用户进入群众端。
+系统按三类角色分流：群众进入服务端，部门人员进入所属部门工单台，超级管理员进入全局看板并只在紧急工单中介入。
 
 | 登录页 | 政府首页看板 |
 | :---: | :---: |
 | <img src="docs/screenshots/01-login.png" width="100%" alt="登录" /> | <img src="docs/screenshots/02-home.png" width="100%" alt="首页" /> |
-| `admin / admin123` · `user / user123` | KPI 卡片 · 趋势 · 地图 · 热门事项 |
+| `admin / admin123` · `user / user123` · `traffic_staff / staff123` | KPI 卡片 · 趋势 · 地图 · 热门事项 |
 
 ### 数据总览与工单处置
 
@@ -78,7 +78,7 @@
 | 趋势 / Holt-Winters 预测 | 数据质量监控 |
 | :---: | :---: |
 | <img src="docs/screenshots/04-trend.png" width="100%" alt="趋势预测" /> | <img src="docs/screenshots/06-quality.png" width="100%" alt="数据质量" /> |
-| 回看 28 天 · 预测 7 天 · MAPE / RMSE | 完整度 · 缺失 / 重复 / 时间逻辑 · 3-sigma |
+| 回看 28 天 · 预测 7 天 · 基线对比 · 参考区间 | 完整度 · 缺失 / 重复 / 时间逻辑 · 3-sigma |
 
 ### 统计报表与督办考核
 
@@ -95,11 +95,12 @@
 | --- | --- | --- |
 | **ETL / 字段映射** | NYC 311 → 诉求 / 办件 / 部门 / 区域 | 中文区域与事项类型、可替换数据源 |
 | **多维聚合** | 区域 × 类型 × 状态 · SQL / Pandas | 总览表、热门 TOP、分类饼图 |
-| **时间序列预测** | Holt-Winters 加法季节，周期 7 天 | 预测曲线 + MAPE / RMSE |
+| **时间序列预测** | Holt-Winters 加法季节，周期 7 天 | 时间留出评估 · 季节性朴素基线 · 95% 参考区间 |
 | **异常检测** | 拟合残差 3-sigma | 异常日列表 / 质量页异常计数 |
 | **数据质量** | 缺失区域 · 重复诉求 · 时间逻辑 | 完整度 99.36% · 问题清单 |
-| **工单闭环** | 待受理 → 分派 → 办理 → 办结 | 工单页操作与超时督办 |
-| **鉴权 RBAC** | PBKDF2 + HMAC Token | 未登录 401 · 越权 403 |
+| **账号治理** | 群众 / 部门人员 / 超级管理员 | 部门绑定 · 持久化增改 · 即时停用 |
+| **工单闭环** | 6 类业务事项 → 自动分派 → 部门办理 → 办结 | 超级管理员仅可紧急改派并填写原因 |
+| **鉴权 RBAC** | 群众 / 部门人员 / 超级管理员 | 部门数据隔离 · 未登录 401 · 越权 403 |
 
 ---
 
@@ -112,7 +113,7 @@
 
 | 指标 | 数值 | 说明 |
 | --- | --- | --- |
-| 诉求 / 办件 | 各 50,000 | NYC 抽样演示集 |
+| 原始工单 | 50,000 | 同一批记录映射为诉求/办件主题表，不重复计数 |
 | 时间跨度 | 约 50 天 | 2026-07-19 → 2026-09-07 |
 | 办结率 | ≈ 99.45% | 已办结 49,725 / 办理中 275 |
 | 数据完整度 | **99.36%** | Data Quality 输出 |
@@ -146,12 +147,13 @@
 | --- | --- |
 | 模型 | Holt-Winters，周期 7 天 |
 | 默认窗口 | 回看 **28** 天，预测未来 **7** 天 |
-| MAPE | ≈ **16.5%** |
-| RMSE | ≈ **329** |
+| MAPE | **14.22%**（最后 7 天时间留出集） |
+| WAPE | **14.01%**（最后 7 天时间留出集） |
+| MAE / RMSE | **117.98 / 139.30** |
 | 近 7 日均办时长 | ≈ 4.1 小时 |
 | 满意度 | ≈ 4.0 / 5 分 |
 
-> 以上指标来自 NYC 311 约 5 万条抽样。仅跑 `generate_data.py` 时区域分布 / MAPE 会不同；更换 `days_back` 时误差也会变化。
+> 以上指标来自 NYC 311 约 5 万条抽样。预测误差采用最后 7 天时间留出评估；仅跑 `generate_data.py` 或更换窗口时结果会变化。紧急程度、经办人、满意度等为界面演示字段，不用于核心业务结论。
 
 ---
 
@@ -224,7 +226,11 @@ npm run dev
 | 角色 | 账号 | 密码 | 进入后 |
 | --- | --- | --- | --- |
 | 管理员 | `admin` | `admin123` | 政府看板 `/home` |
+| 交通部门人员 | `traffic_staff` | `staff123` | 本部门工单 `/case` |
+| 城管部门人员 | `city_staff` | `staff123` | 本部门工单 `/case` |
 | 普通用户 | `user` | `user123` | 群众端 `/citizen` |
+
+部门人员自助注册还需单位注册码（开发默认 `demo-staff-2026`）；部署时必须通过 `SMART_GOV_STAFF_REGISTER_CODE` 环境变量替换。
 
 ### 5. 数据大屏（可选）
 
@@ -286,14 +292,14 @@ pytest -v
 | --- | --- |
 | 单元测试 | `shared`：指标、预测、质量等 |
 | API 冒烟 | 登录 · 401 · 403 · 看板 · 诉求 |
-| 规模 | 约 **50+** 用例 |
+| 规模 | **63** 个用例 |
 
 ---
 
 ## 项目结构
 
 ```
-智慧政务大数据分析平台/
+智慧政务数据分析平台/
 ├── backend/                 # FastAPI
 ├── frontend/                # Vue3 管理端（5500）
 ├── dashboard/               # Streamlit 大屏（可选）
@@ -319,6 +325,9 @@ pytest -v
 | [docs/技术亮点.md](docs/技术亮点.md) | 架构、分析设计与演示边界 |
 | [docs/项目故事.md](docs/项目故事.md) | 背景与 STAR 说明 |
 | [docs/截图清单.md](docs/截图清单.md) | 截图文件约定 |
+| [analysis/analysis_report.md](analysis/analysis_report.md) | 业务问题、核心发现、行动建议与数据边界 |
+| [analysis/business_questions.sql](analysis/business_questions.sql) | CTE、窗口函数、Pareto、移动平均与异常归因 SQL |
+| [analysis/data_dictionary.md](analysis/data_dictionary.md) | 字段来源、指标口径与模拟字段说明 |
 
 ---
 

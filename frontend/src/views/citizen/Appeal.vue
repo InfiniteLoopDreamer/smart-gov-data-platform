@@ -19,6 +19,12 @@
             <el-form-item label="诉求内容">
               <el-input v-model="form.content" type="textarea" :rows="4" placeholder="请描述您要反映的问题…" />
             </el-form-item>
+            <el-form-item label="紧急程度">
+              <el-radio-group v-model="form.priority">
+                <el-radio value="普通">普通</el-radio>
+                <el-radio value="紧急">紧急（存在即时安全风险）</el-radio>
+              </el-radio-group>
+            </el-form-item>
             <el-form-item>
               <el-button type="primary" :loading="loading" @click="submit">提交诉求</el-button>
             </el-form-item>
@@ -74,7 +80,8 @@ const regions = ref(['布鲁克林区', '皇后区', '曼哈顿区', '布朗克�
 const form = reactive({
   category: '',
   region: '布鲁克林区',
-  content: ''
+  content: '',
+  priority: '普通'
 })
 
 async function submit() {
@@ -111,13 +118,15 @@ function statusType(s) {
 
 onMounted(async () => {
   try {
-    const cats = await api.caseCategories()
+    const cats = await api.serviceCategories()
     categories.value = cats.map((c) => c.name).filter(Boolean)
     if (categories.value.length) form.category = categories.value[0]
     const vols = await api.regionVolume()
-    if (vols?.length) regions.value = vols.map((r) => r.name)
+    if (vols?.length) {
+      regions.value = vols.map((r) => r.name).filter((name) => name && name !== '未指定区域')
+    }
   } catch {
-    categories.value = ['违章停车', '堵塞车道', '街道噪音']
+    categories.value = ['交通出行', '噪声扰民', '市容环境', '公共秩序', '社会救助', '动物管理']
     form.category = categories.value[0]
   }
   loadMy()

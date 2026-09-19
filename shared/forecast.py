@@ -93,6 +93,16 @@ def mae(actual, predicted) -> float:
     return float(np.mean(np.abs(actual - predicted)))
 
 
+def wape(actual, predicted) -> float | None:
+    """加权绝对百分比误差（WAPE，%），比含零值时的 MAPE 更稳定。"""
+    actual = np.asarray(actual, dtype=float)
+    predicted = np.asarray(predicted, dtype=float)
+    denominator = float(np.abs(actual).sum())
+    if denominator == 0:
+        return None
+    return float(np.abs(actual - predicted).sum() / denominator * 100)
+
+
 def detect_anomalies(values, threshold: float = 3.0, season_len: int = 7) -> list:
     """基于拟合残差 z-score 的异常检测。
 

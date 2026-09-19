@@ -1,11 +1,22 @@
 <template>
-  <div class="home-page">
+  <div v-loading="loading" class="home-page">
+    <el-alert
+      v-if="loadError"
+      :title="loadError"
+      type="error"
+      show-icon
+      :closable="false"
+    />
     <div class="hero-banner">
       <img class="banner-photo" src="/images/hero-city.jpg" alt="" />
       <div class="banner-overlay"></div>
       <div class="banner-content">
         <h1 class="banner-title">智慧政务 · 数据驱动 · 服务民生</h1>
         <p class="banner-subtitle">让政务更高效 · 让数据更有价值 · 让群众更满意</p>
+        <div class="banner-meta">
+          <span>演示数据：NYC 311 公开工单</span>
+          <span>统计截止：{{ dataAsOf || '-' }}</span>
+        </div>
       </div>
     </div>
 
@@ -16,10 +27,11 @@
         </div>
         <div class="stat-content">
           <div class="stat-label">{{ stat.label }}</div>
-          <div class="stat-value">{{ formatNumber(stat.value) }}</div>
-          <div class="stat-trend" :class="stat.trend >= 0 ? 'up' : 'down'">
-            <span>{{ stat.trend >= 0 ? '↑' : '↓' }} {{ Math.abs(stat.trend) }}%</span>
-            <span class="trend-text">较上月</span>
+          <div class="stat-value">{{ formatNumber(stat.value) }}<small>{{ stat.unit || '' }}</small></div>
+          <div class="stat-trend" :class="stat.trend == null ? 'neutral' : (stat.trend >= 0 ? 'up' : 'down')">
+            <span v-if="stat.trend != null">{{ stat.trend >= 0 ? '↑' : '↓' }} {{ Math.abs(stat.trend) }}{{ stat.trendUnit || '' }}</span>
+            <span v-else>●</span>
+            <span class="trend-text">{{ stat.trendLabel || '环比' }}</span>
           </div>
         </div>
       </div>
@@ -28,7 +40,7 @@
     <div class="mid-grid">
       <div class="panel">
         <div class="panel-header">
-          <h3 class="panel-title">政务数据访问趋势</h3>
+          <h3 class="panel-title">每日办件量趋势</h3>
           <div class="time-tabs">
             <button
               v-for="period in timePeriods"
@@ -92,8 +104,8 @@
 
       <div class="panel">
         <div class="panel-header">
-          <h3 class="panel-title">各部门数据使用情况</h3>
-          <span class="unit-label">单位：次</span>
+          <h3 class="panel-title">{{ barChartTitle }}</h3>
+          <span class="unit-label">单位：件</span>
         </div>
         <BaseChart :option="barChartOption" height="260px" />
       </div>
@@ -101,7 +113,7 @@
       <div class="right-stack">
         <div class="panel status-panel">
           <div class="panel-header">
-            <h3 class="panel-title">系统运行状态</h3>
+            <h3 class="panel-title">数据运行概况</h3>
           </div>
           <div class="status-list">
             <div v-for="item in systemStatus" :key="item.name" class="status-item">
@@ -130,12 +142,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
+import echarts from '@/charts/echarts'
 import BaseChart from '@/components/BaseChart.vue'
 import { api } from '@/api'
-import { Database, FileText, Landmark, Users } from 'lucide-vue-next'
+import { Database, CircleCheckBig, Clock3, TriangleAlert } from 'lucide-vue-next'
 
 const router = useRouter()
+const loading = ref(true)
+const loadError = ref('')
+const dataAsOf = ref('')
 const selectedPeriod = ref('30')
 const mapReady = ref(false)
 const totalCount = ref(0)
@@ -148,16 +164,16 @@ const trendSeries = ref({
 const timePeriods = [
   { label: '近7天', value: '7' },
   { label: '近30天', value: '30' },
-  { label: '近12个月', value: '365' }
+  { label: '全部周期', value: '365' }
 ]
 
 const regionColors = ['#E65100', '#F57C00', '#FB8C00', '#FFA726', '#FFB74D', '#FFCC80']
 
 const statsData = ref([
-  { label: '政务数据总量', value: 0, trend: 0, icon: Database, color: '#E57373', bg: 'rgba(229,115,115,0.16)' },
-  { label: '服务事项总数', value: 0, trend: 0, icon: FileText, color: '#FFB74D', bg: 'rgba(255,183,77,0.18)' },
-  { label: '办件总量', value: 0, trend: 0, icon: Landmark, color: '#F6C343', bg: 'rgba(246,195,67,0.18)' },
-  { label: '用户总数', value: 0, trend: 0, icon: Users, color: '#FFCC80', bg: 'rgba(255,204,128,0.22)' }
+  { label: '累计办件量', value: 0, trend: 0, icon: Database, color: '#E57373', bg: 'rgba(229,115,115,0.16)' },
+  { label: '整体办结率', value: 0, unit: '%', trend: 0, icon: CircleCheckBig, color: '#10B981', bg: 'rgba(16,185,129,0.14)' },
+  { label: '近7日平均办理时长', value: 0, unit: '小时', trend: 0, icon: Clock3, color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' },
+  { label: '当前未办结工单', value: 0, trend: 0, icon: TriangleAlert, color: '#EF4444', bg: 'rgba(239,68,68,0.13)' }
 ])
 
 const allRegions = ref([])
@@ -167,6 +183,12 @@ const systemStatus = ref([])
 const notices = ref([])
 const typeDistribution = ref([])
 const deptUsage = ref([])
+const meaningfulDepartments = computed(() => {
+  const total = totalCount.value || 1
+  return deptUsage.value.filter((item) => Number(item.value || 0) / total >= 0.01)
+})
+const barChartTitle = computed(() => meaningfulDepartments.value.length > 1 ? '各部门承办量' : '各行政区办件量')
+const barChartData = computed(() => meaningfulDepartments.value.length > 1 ? meaningfulDepartments.value : regionData.value)
 
 function formatNumber(n) {
   return Number(n || 0).toLocaleString('zh-CN')
@@ -185,12 +207,15 @@ function applyRemote(data) {
   if (!data) return
   totalCount.value = data.total || data.stats?.[0]?.value || 0
   if (data.stats?.length) {
-    const icons = [Database, FileText, Landmark, Users]
+    const icons = [Database, CircleCheckBig, Clock3, TriangleAlert]
     statsData.value = data.stats.map((s, i) => ({
       ...statsData.value[i],
       label: s.label,
       value: s.value,
-      trend: s.trend ?? 0,
+      trend: Object.prototype.hasOwnProperty.call(s, 'trend') ? s.trend : 0,
+      unit: s.unit || '',
+      trendLabel: s.trendLabel || '环比',
+      trendUnit: s.trendUnit ?? '%',
       icon: icons[i] || Database,
       color: s.color || statsData.value[i]?.color
     }))
@@ -202,6 +227,7 @@ function applyRemote(data) {
   if (data.notices?.length) notices.value = data.notices
   if (data.systemStatus?.length) systemStatus.value = data.systemStatus
   if (data.trendSeries) trendSeries.value = data.trendSeries
+  dataAsOf.value = data.dataAsOf || ''
 }
 
 onMounted(async () => {
@@ -215,7 +241,10 @@ onMounted(async () => {
   try {
     applyRemote(await api.dashboardStats())
   } catch (e) {
-    console.error(e)
+    loadError.value = '首页数据加载失败，请确认后端服务已启动并使用管理员账号登录。'
+    ElMessage.error(loadError.value)
+  } finally {
+    loading.value = false
   }
 })
 
@@ -291,7 +320,7 @@ const mapChartOption = computed(() => {
 })
 
 const pieChartOption = computed(() => {
-  const colors = ['#FF6B00', '#FFB74D', '#FFD180', '#FFE0B2', '#FFF3E0']
+  const colors = ['#FF6B00', '#2B5FD7', '#10B981', '#F59E0B', '#8B5CF6', '#94A3B8']
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {d}%' },
     legend: {
@@ -325,11 +354,11 @@ const pieChartOption = computed(() => {
 })
 
 const barChartOption = computed(() => ({
-  tooltip: { trigger: 'axis', formatter: '{b}<br/>使用次数: {c}' },
+  tooltip: { trigger: 'axis', formatter: '{b}<br/>办件量: {c}' },
   grid: { left: 12, right: 12, bottom: 8, top: 24, containLabel: true },
   xAxis: {
     type: 'category',
-    data: deptUsage.value.map((d) => d.name),
+    data: barChartData.value.map((d) => d.name),
     axisTick: { show: false },
     axisLine: { lineStyle: { color: '#E8E8E8' } },
     axisLabel: { color: '#666', fontSize: 11 }
@@ -342,7 +371,7 @@ const barChartOption = computed(() => ({
   series: [{
     type: 'bar',
     barWidth: '42%',
-    data: deptUsage.value.map((d) => d.value),
+    data: barChartData.value.map((d) => d.value),
     itemStyle: {
       borderRadius: [5, 5, 0, 0],
       color: {
@@ -366,7 +395,7 @@ const barChartOption = computed(() => ({
 
 .hero-banner {
   position: relative;
-  height: 156px;
+  height: clamp(220px, 14vw, 280px);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(80, 40, 10, 0.18);
@@ -378,7 +407,7 @@ const barChartOption = computed(() => ({
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 40%;
+  object-position: center 52%;
 }
 
 .banner-overlay {
@@ -412,6 +441,18 @@ const barChartOption = computed(() => ({
   font-size: 15px;
   color: rgba(255, 255, 255, 0.95);
   letter-spacing: 3px;
+}
+
+.banner-meta {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(30, 18, 8, 0.25);
+  font-size: 12px;
 }
 
 .stats-grid {
@@ -454,6 +495,13 @@ const barChartOption = computed(() => ({
   font-variant-numeric: tabular-nums;
 }
 
+.stat-value small {
+  margin-left: 4px;
+  color: #606266;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .stat-trend {
   margin-top: 6px;
   font-size: 12px;
@@ -462,6 +510,7 @@ const barChartOption = computed(() => ({
 
 .stat-trend.up { color: #67C23A; }
 .stat-trend.down { color: #F56C6C; }
+.stat-trend.neutral { color: #F59E0B; }
 .trend-text { color: #909399; font-weight: 400; margin-left: 6px; }
 
 .mid-grid {
@@ -626,5 +675,22 @@ const barChartOption = computed(() => ({
 @media (max-width: 900px) {
   .mid-grid, .bottom-grid, .stats-grid, .map-body { grid-template-columns: 1fr; }
   .banner-title { font-size: 22px; letter-spacing: 2px; }
+  .banner-meta { flex-direction: column; gap: 2px; border-radius: 8px; }
+  .hero-banner { height: 220px; }
+  .stat-card { padding: 16px; }
+  .panel { padding: 14px; }
+}
+
+@media (max-width: 520px) {
+  .home-page { gap: 12px; }
+  .banner-title { font-size: 20px; line-height: 1.35; }
+  .hero-banner { height: 210px; }
+  .banner-subtitle { font-size: 12px; letter-spacing: 1px; }
+  .banner-meta { margin-top: 10px; font-size: 11px; }
+  .stat-icon { width: 48px; height: 48px; }
+  .stat-value { font-size: 24px; }
+  .panel-header { align-items: flex-start; gap: 10px; }
+  .time-tabs { gap: 4px; }
+  .tab-btn { padding: 4px 8px; }
 }
 </style>

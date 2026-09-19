@@ -7,8 +7,8 @@
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
         <el-radio-group v-model="category" @change="onFilter">
-          <el-radio-button label="全部">全部</el-radio-button>
-          <el-radio-button v-for="c in categories" :key="c" :label="c">{{ c }}</el-radio-button>
+          <el-radio-button value="全部">全部</el-radio-button>
+          <el-radio-button v-for="c in categories" :key="c" :value="c">{{ c }}</el-radio-button>
         </el-radio-group>
       </div>
 
